@@ -9,6 +9,7 @@ const db = require('./dataUtils/dbInit');
 
 const middlewares = require('./middlewares');
 const cwlRouter = require('./routers/cwlRouter');
+const uploadRouter = require('./routers/uploadRouter');
 
 const app = express();
 
@@ -23,7 +24,8 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use('/api/v1', cwlRouter);
+app.use('/api/v1/cwl', cwlRouter);
+app.use('/api/v1/upload', uploadRouter);
 
 app.use(middlewares.notFound);
 app.use(middlewares.errorHandler);
