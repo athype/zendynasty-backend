@@ -5,6 +5,8 @@ const cors = require('cors');
 
 require('dotenv').config();
 
+const db = require('./dataUtils/dbInit');
+
 const middlewares = require('./middlewares');
 const cwlRouter = require('./routers/cwlRouter');
 
