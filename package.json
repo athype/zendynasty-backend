@@ -17,13 +17,18 @@
   },
   "license": "MIT",
   "dependencies": {
+    "connect-sqlite3": "^0.9.15",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "express-session": "^1.18.1",
     "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
+    "passport": "^0.7.0",
+    "passport-discord": "^0.1.4",
     "pg": "^8.16.0",
     "sqlite3": "^5.1.7"
   },

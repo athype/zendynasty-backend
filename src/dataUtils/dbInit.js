@@ -9,8 +9,23 @@ const getSchemaSQL = () => {
   const booleanType = isPostgreSQL ? 'BOOLEAN' : 'BOOLEAN';
   const booleanDefault = isPostgreSQL ? 'FALSE' : '0';
   const decimalType = isPostgreSQL ? 'DECIMAL(5,2)' : 'REAL';
+  const timestampType = isPostgreSQL ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP';
 
   return {
+    // Add users table
+    users: `
+      CREATE TABLE IF NOT EXISTS users (
+        user_id ${autoIncrement},
+        discord_id VARCHAR(50) NOT NULL UNIQUE,
+        username VARCHAR(100) NOT NULL,
+        avatar VARCHAR(255),
+        email VARCHAR(255),
+        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        created_at ${timestampType},
+        last_login ${timestampType}
+      );
+    `,
+    
     players: `
       CREATE TABLE IF NOT EXISTS players (
         player_id ${autoIncrement},
@@ -62,12 +77,14 @@ async function initializeDatabase() {
     const schemas = getSchemaSQL();
     
     // Create tables
+    await database.query(schemas.users);
     await database.query(schemas.players);
     await database.query(schemas.cwl_seasons);
     await database.query(schemas.war_days);
     await database.query(schemas.player_attacks);
     
     // Create indexes
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_player_id ON player_attacks(player_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_war_day_id ON player_attacks(war_day_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_war_days_season_id ON war_days(season_id);`);
