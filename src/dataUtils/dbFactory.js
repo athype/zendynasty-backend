@@ -1,17 +1,21 @@
 const path = require("path");
 
 function createDatabase() {
+  // Railway automatically sets NODE_ENV to production and provides DATABASE_URL
   const isProduction = process.env.NODE_ENV === 'production' || 
                       process.env.DATABASE_URL || 
                       process.env.RAILWAY_ENVIRONMENT;
   
   console.log('Database environment check:', {
     NODE_ENV: process.env.NODE_ENV,
-    hasDATA_URL: !!process.env.DATABASE_URL,
+    hasDatabase_URL: !!process.env.DATABASE_URL,
+    DATABASE_URL_preview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'not set',
+    RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
     isProduction
   });
   
   if (isProduction && process.env.DATABASE_URL) {
+    console.log('Using PostgreSQL for production');
     // PostgreSQL for production
     const { Pool } = require('pg');
     
@@ -39,9 +43,12 @@ function createDatabase() {
       close: () => pool.end()
     };
   } else {
+    console.log('Using SQLite for development');
     // SQLite for development
     const sqlite3 = require("sqlite3").verbose();
     const dbPath = process.env.DB_PATH || path.resolve(__dirname, "../../database/survey.db");
+    
+    console.log('SQLite database path:', dbPath);
     
     const db = new sqlite3.Database(dbPath);
     db.run("PRAGMA foreign_keys = ON;");
