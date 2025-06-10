@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const middlewares = require('../middlewares');
+const { authenticate, requireAdmin } = require('../middlewares/auth');
 const {
   uploadCWLData,
   getUploadHistory
@@ -40,9 +41,9 @@ const upload = multer({
 });
 
 // Upload CWL CSV endpoint
-router.post('/cwl-csv', upload.single('csvFile'), uploadCWLData);
+router.post('/cwl-csv', authenticate, requireAdmin, upload.single('csvFile'), uploadCWLData);
 
 // Get upload status/history endpoint
-router.get('/history', getUploadHistory);
+router.get('/history', authenticate, getUploadHistory);
 
 module.exports = router;

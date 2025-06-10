@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -5,8 +7,6 @@ const cors = require('cors');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const passport = require('./config/passport');
-
-require('dotenv').config();
 
 const db = require('./dataUtils/dbInit');
 
