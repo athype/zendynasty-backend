@@ -1,25 +1,15 @@
 const createDatabase = require('./dbFactory');
 
-let database = null;
-let isPostgreSQL = null;
-
-// Lazy initialization function
-function getDatabase() {
-  if (!database) {
-    database = createDatabase();
-    isPostgreSQL = database.type === 'postgresql';
-  }
-  return database;
-}
+const database = createDatabase();
+const isPostgreSQL = database.type === 'postgresql';
 
 // Schema definitions with conditional SQL
 const getSchemaSQL = () => {
-  const db = getDatabase();
-  const autoIncrement = db.type === 'postgresql' ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
-  const booleanType = db.type === 'postgresql' ? 'BOOLEAN' : 'BOOLEAN';
-  const booleanDefault = db.type === 'postgresql' ? 'FALSE' : '0';
-  const decimalType = db.type === 'postgresql' ? 'DECIMAL(5,2)' : 'REAL';
-  const timestampType = db.type === 'postgresql' ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP';
+  const autoIncrement = isPostgreSQL ? 'SERIAL PRIMARY KEY' : 'INTEGER PRIMARY KEY AUTOINCREMENT';
+  const booleanType = isPostgreSQL ? 'BOOLEAN' : 'BOOLEAN';
+  const booleanDefault = isPostgreSQL ? 'FALSE' : '0';
+  const decimalType = isPostgreSQL ? 'DECIMAL(5,2)' : 'REAL';
+  const timestampType = isPostgreSQL ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP';
 
   return {
     // Add users table
@@ -82,30 +72,29 @@ const getSchemaSQL = () => {
 
 async function initializeDatabase() {
   try {
-    const db = getDatabase();
-    console.log(`Initializing ${db.type} database...`);
+    console.log(`Initializing ${database.type} database...`);
     
     const schemas = getSchemaSQL();
     
     // Create tables
-    await db.query(schemas.users);
-    await db.query(schemas.players);
-    await db.query(schemas.cwl_seasons);
-    await db.query(schemas.war_days);
-    await db.query(schemas.player_attacks);
+    await database.query(schemas.users);
+    await database.query(schemas.players);
+    await database.query(schemas.cwl_seasons);
+    await database.query(schemas.war_days);
+    await database.query(schemas.player_attacks);
     
     // Create indexes
-    await db.query(`CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);`);
-    await db.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_player_id ON player_attacks(player_id);`);
-    await db.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_war_day_id ON player_attacks(war_day_id);`);
-    await db.query(`CREATE INDEX IF NOT EXISTS idx_war_days_season_id ON war_days(season_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_player_id ON player_attacks(player_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_war_day_id ON player_attacks(war_day_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_war_days_season_id ON war_days(season_id);`);
     
     // Create view with conditional syntax
-    const viewSQL = db.type === 'postgresql' 
+    const viewSQL = isPostgreSQL 
       ? `CREATE OR REPLACE VIEW cwl_performance_summary AS`
       : `CREATE VIEW IF NOT EXISTS cwl_performance_summary AS`;
       
-    await db.query(`
+    await database.query(`
       ${viewSQL}
       SELECT 
         p.player_name,
@@ -131,22 +120,7 @@ async function initializeDatabase() {
   }
 }
 
-// Create a proxy object that delegates to the actual database
-const databaseProxy = {
-  get type() {
-    return getDatabase().type;
-  },
-  get client() {
-    return getDatabase().client;
-  },
-  query: (...args) => getDatabase().query(...args),
-  close: () => getDatabase().close(),
-  initialize: initializeDatabase
-};
+// Initialize on startup
+initializeDatabase().catch(console.error);
 
-// Initialize on first access instead of immediately
-setTimeout(() => {
-  initializeDatabase().catch(console.error);
-}, 100);
-
-module.exports = databaseProxy;
+module.exports = database;
