@@ -40,7 +40,8 @@ if (isProduction && process.env.DATABASE_URL) {
   
   sessionStore = new pgSession({
     pool: pool,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true
   });
 } else {
   // Use SQLite for sessions in development
