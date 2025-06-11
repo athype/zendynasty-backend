@@ -19,7 +19,6 @@ const getSchemaSQL = () => {
         discord_id VARCHAR(50) NOT NULL UNIQUE,
         username VARCHAR(100) NOT NULL,
         avatar VARCHAR(255),
-        email VARCHAR(255),
         role VARCHAR(20) NOT NULL DEFAULT 'user',
         created_at ${timestampType},
         last_login ${timestampType}

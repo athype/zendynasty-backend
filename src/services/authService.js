@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 class AuthService {
   
   async createOrUpdateUser(discordUser) {
-    const { id, username, avatar, email } = discordUser;
+    const { id, username, avatar } = discordUser;
     
     // Check if user is admin based on Discord ID
     const adminIds = process.env.ADMIN_DISCORD_IDS ? process.env.ADMIN_DISCORD_IDS.split(',') : [];
@@ -18,10 +18,9 @@ class AuthService {
       );
       
       if (existingUser.rows && existingUser.rows.length > 0) {
-        // Update existing user
         await database.query(
-          `UPDATE users SET username = ${database.type === 'postgresql' ? '$1' : '?'}, avatar = ${database.type === 'postgresql' ? '$2' : '?'}, email = ${database.type === 'postgresql' ? '$3' : '?'}, role = ${database.type === 'postgresql' ? '$4' : '?'}, last_login = ${database.type === 'postgresql' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP'} WHERE discord_id = ${database.type === 'postgresql' ? '$5' : '?'}`,
-          [username, avatar, email, role, id]
+          `UPDATE users SET username = ${database.type === 'postgresql' ? '$1' : '?'}, avatar = ${database.type === 'postgresql' ? '$2' : '?'}, role = ${database.type === 'postgresql' ? '$3' : '?'}, last_login = ${database.type === 'postgresql' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP'} WHERE discord_id = ${database.type === 'postgresql' ? '$4' : '?'}`,
+          [username, avatar, role, id]
         );
         
         return {
@@ -29,14 +28,12 @@ class AuthService {
           discord_id: id,
           username,
           avatar,
-          email,
           role
         };
       } else {
-        // Create new user
         const result = await database.query(
-          `INSERT INTO users (discord_id, username, avatar, email, role) VALUES (${database.type === 'postgresql' ? '$1, $2, $3, $4, $5' : '?, ?, ?, ?, ?'}) ${database.type === 'postgresql' ? 'RETURNING user_id' : ''}`,
-          [id, username, avatar, email, role]
+          `INSERT INTO users (discord_id, username, avatar, role) VALUES (${database.type === 'postgresql' ? '$1, $2, $3, $4' : '?, ?, ?, ?'}) ${database.type === 'postgresql' ? 'RETURNING user_id' : ''}`,
+          [id, username, avatar, role]
         );
         
         const userId = database.type === 'postgresql' ? result.rows[0].user_id : result.insertId;
@@ -46,7 +43,6 @@ class AuthService {
           discord_id: id,
           username,
           avatar,
-          email,
           role
         };
       }
@@ -78,7 +74,7 @@ class AuthService {
   async getUserById(userId) {
     try {
       const result = await database.query(
-        `SELECT user_id, discord_id, username, avatar, email, role FROM users WHERE user_id = ${database.type === 'postgresql' ? '$1' : '?'}`,
+        `SELECT user_id, discord_id, username, avatar, role FROM users WHERE user_id = ${database.type === 'postgresql' ? '$1' : '?'}`,
         [userId]
       );
       
