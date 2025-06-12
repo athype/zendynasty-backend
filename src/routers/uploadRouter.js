@@ -40,10 +40,57 @@ const upload = multer({
   }
 });
 
-// Upload CWL CSV endpoint
+/**
+ * @swagger
+ * /api/v1/upload/cwl-csv:
+ *   post:
+ *     summary: Upload CWL CSV data
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               csvFile:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file containing CWL data
+ *               season_year:
+ *                 type: integer
+ *                 description: Year of the CWL season
+ *               season_month:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 12
+ *                 description: Month of the CWL season
+ *     responses:
+ *       200:
+ *         description: CSV uploaded and processed successfully
+ *       400:
+ *         description: Bad request - missing file or invalid data
+ *       401:
+ *         description: Unauthorized - admin access required
+ *       403:
+ *         description: Forbidden - admin role required
+ */
 router.post('/cwl-csv', authenticate, requireAdmin, upload.single('csvFile'), uploadCWLData);
 
-// Get upload status/history endpoint
+/**
+ * @swagger
+ * /api/v1/upload/history:
+ *   get:
+ *     summary: Get upload history
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upload history data
+ */
 router.get('/history', authenticate, getUploadHistory);
 
 module.exports = router;

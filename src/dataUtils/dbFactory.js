@@ -46,7 +46,7 @@ function createDatabase() {
     console.log('Using SQLite for development');
     // SQLite for development
     const sqlite3 = require("sqlite3").verbose();
-    const dbPath = process.env.DB_PATH || path.resolve(__dirname, "../../database/survey.db");
+    const dbPath = process.env.DB_PATH || path.resolve(__dirname, "../../database/mainClash.db");
     
     console.log('SQLite database path:', dbPath);
     

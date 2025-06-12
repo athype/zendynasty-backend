@@ -6,6 +6,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 const session = require('express-session');
 const passport = require('./config/passport');
+const cocClientManager = require('./config/cocApi');
+const { specs, swaggerUi } = require('./config/swagger');
 
 const db = require('./dataUtils/dbInit');
 
@@ -13,8 +15,14 @@ const middlewares = require('./middlewares');
 const authRouter = require('./routers/authRouter');
 const cwlRouter = require('./routers/cwlRouter');
 const uploadRouter = require('./routers/uploadRouter');
+const clashRouter = require('./routers/clashRouter');
 
 const app = express();
+
+// Initialize CoC Client on startup
+cocClientManager.initialize().catch(error => {
+  console.error('Failed to initialize CoC Client:', error);
+});
 
 app.use(morgan('dev'));
 app.use(helmet());
@@ -69,15 +77,25 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.get('/', (req, res) => {
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Zen Dynasty API Documentation'
+}));
+
+app.get('/health', (req, res) => {
   res.json({
-    message: 'I am alive',
+    status: 'ok',
+    database: db.type,
+    cocClient: cocClientManager.isReady() ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
   });
 });
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/cwl', cwlRouter);
 app.use('/api/v1/upload', uploadRouter);
+app.use('/api/v1/clash', clashRouter);
 
 app.use(middlewares.notFound);
 app.use(middlewares.errorHandler);
