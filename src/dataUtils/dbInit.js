@@ -12,7 +12,7 @@ const getSchemaSQL = () => {
   const timestampType = isPostgreSQL ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP';
 
   return {
-    // Add users table
+    // Users table
     users: `
       CREATE TABLE IF NOT EXISTS users (
         user_id ${autoIncrement},
@@ -25,12 +25,14 @@ const getSchemaSQL = () => {
       );
     `,
     
+    // Players table - general player info
     players: `
       CREATE TABLE IF NOT EXISTS players (
         player_id ${autoIncrement},
-        player_name VARCHAR(50) NOT NULL UNIQUE,
+        player_tag VARCHAR(20) NOT NULL UNIQUE,
+        player_name VARCHAR(50) NOT NULL,
         town_hall_level INTEGER NOT NULL CHECK (town_hall_level BETWEEN 1 AND 17),
-        bonus_eligible ${booleanType} NOT NULL DEFAULT ${booleanDefault}
+        last_updated ${timestampType}
       );
     `,
     
@@ -40,6 +42,20 @@ const getSchemaSQL = () => {
         season_year INTEGER NOT NULL,
         season_month INTEGER NOT NULL CHECK (season_month BETWEEN 1 AND 12),
         UNIQUE(season_year, season_month)
+      );
+    `,
+    
+    // NEW: CWL participation and bonus eligibility per season
+    cwl_participation: `
+      CREATE TABLE IF NOT EXISTS cwl_participation (
+        participation_id ${autoIncrement},
+        player_id INTEGER NOT NULL,
+        season_id INTEGER NOT NULL,
+        bonus_eligible ${booleanType} NOT NULL DEFAULT ${booleanDefault},
+        created_at ${timestampType},
+        UNIQUE(player_id, season_id),
+        FOREIGN KEY (player_id) REFERENCES players(player_id),
+        FOREIGN KEY (season_id) REFERENCES cwl_seasons(season_id)
       );
     `,
     
@@ -75,20 +91,25 @@ async function initializeDatabase() {
     
     const schemas = getSchemaSQL();
     
-    // Create tables
+    // Create tables in order (respecting foreign key dependencies)
     await database.query(schemas.users);
     await database.query(schemas.players);
     await database.query(schemas.cwl_seasons);
+    await database.query(schemas.cwl_participation);
     await database.query(schemas.war_days);
     await database.query(schemas.player_attacks);
     
     // Create indexes
     await database.query(`CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_players_tag ON players(player_tag);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_players_name ON players(player_name);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_cwl_participation_player_id ON cwl_participation(player_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_cwl_participation_season_id ON cwl_participation(season_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_player_id ON player_attacks(player_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_war_day_id ON player_attacks(war_day_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_war_days_season_id ON war_days(season_id);`);
     
-    // Create view with conditional syntax
+    // Create enhanced view with bonus eligibility
     const viewSQL = isPostgreSQL 
       ? `CREATE OR REPLACE VIEW cwl_performance_summary AS`
       : `CREATE VIEW IF NOT EXISTS cwl_performance_summary AS`;
@@ -96,19 +117,21 @@ async function initializeDatabase() {
     await database.query(`
       ${viewSQL}
       SELECT 
+        p.player_tag,
         p.player_name,
         p.town_hall_level,
-        p.bonus_eligible,
         cs.season_year,
         cs.season_month,
         wd.day_number,
         pa.stars_earned,
         pa.destruction_percentage,
-        pa.enemy_town_hall_level
+        pa.enemy_town_hall_level,
+        cp.bonus_eligible
       FROM players p
       JOIN player_attacks pa ON p.player_id = pa.player_id
       JOIN war_days wd ON pa.war_day_id = wd.war_day_id
       JOIN cwl_seasons cs ON wd.season_id = cs.season_id
+      LEFT JOIN cwl_participation cp ON p.player_id = cp.player_id AND cs.season_id = cp.season_id
       ORDER BY cs.season_year DESC, cs.season_month DESC, wd.day_number, p.player_name;
     `);
     

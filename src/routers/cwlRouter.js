@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const middlewares = require('../middlewares');
 const {
   getCWLPerformance,
   getSeasonSummary,
   getMissedAttacks,
   getAllSeasons,
-  getCurrentSeason
+  getCurrentSeason,
+  getPlayerByTag,
+  getPlayerCWLParticipation
 } = require('../controllers/cwlController');
 
 /**
@@ -18,22 +19,6 @@ const {
  *     responses:
  *       200:
  *         description: List of all seasons
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 seasons:
- *                   type: array
- *                   items:
- *                     allOf:
- *                       - $ref: '#/components/schemas/Season'
- *                       - type: object
- *                         properties:
- *                           total_players:
- *                             type: integer
- *                           total_attacks:
- *                             type: integer
  */
 router.get('/seasons', getAllSeasons);
 
@@ -46,26 +31,59 @@ router.get('/seasons', getAllSeasons);
  *     responses:
  *       200:
  *         description: Current season comprehensive data
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 season:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     performance:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/PlayerAttack'
- *                     summary:
- *                       type: array
- *                     missedAttacks:
- *                       type: array
  */
 router.get('/current', getCurrentSeason);
+
+/**
+ * @swagger
+ * /api/v1/cwl/player/{playerTag}:
+ *   get:
+ *     summary: Get player information by tag
+ *     tags: [CWL]
+ *     parameters:
+ *       - in: path
+ *         name: playerTag
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Player tag (e.g., #CLV98LRJ)
+ *     responses:
+ *       200:
+ *         description: Player information
+ *       404:
+ *         description: Player not found
+ */
+router.get('/player/:playerTag', getPlayerByTag);
+
+/**
+ * @swagger
+ * /api/v1/cwl/player/{playerTag}/participation/{year}/{month}:
+ *   get:
+ *     summary: Get player CWL participation for specific season
+ *     tags: [CWL]
+ *     parameters:
+ *       - in: path
+ *         name: playerTag
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: year
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: month
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Player participation data
+ *       404:
+ *         description: Participation not found
+ */
+router.get('/player/:playerTag/participation/:year/:month', getPlayerCWLParticipation);
 
 /**
  * @swagger
@@ -79,20 +97,14 @@ router.get('/current', getCurrentSeason);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Season year
  *       - in: path
  *         name: month
  *         required: true
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 12
- *         description: Season month
  *     responses:
  *       200:
- *         description: Performance data for the season
- *       400:
- *         description: Invalid year or month
+ *         description: CWL performance data
  */
 router.get('/performance/:year/:month', getCWLPerformance);
 
@@ -100,7 +112,7 @@ router.get('/performance/:year/:month', getCWLPerformance);
  * @swagger
  * /api/v1/cwl/summary/{year}/{month}:
  *   get:
- *     summary: Get season summary for specific season
+ *     summary: Get season summary per player
  *     tags: [CWL]
  *     parameters:
  *       - in: path
@@ -113,8 +125,6 @@ router.get('/performance/:year/:month', getCWLPerformance);
  *         required: true
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 12
  *     responses:
  *       200:
  *         description: Season summary data
@@ -138,8 +148,6 @@ router.get('/summary/:year/:month', getSeasonSummary);
  *         required: true
  *         schema:
  *           type: integer
- *           minimum: 1
- *           maximum: 12
  *     responses:
  *       200:
  *         description: Missed attacks data

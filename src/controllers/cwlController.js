@@ -1,3 +1,4 @@
+const cwlDataService = require('../services/cwlDataService');
 const database = require('../dataUtils/dbInit');
 const {
   GET_CWL_PERFORMANCE_CURRENT_SEASON,
@@ -70,22 +71,10 @@ const getMissedAttacks = async (req, res, next) => {
 
 const getAllSeasons = async (req, res, next) => {
   try {
-    const result = await database.query(`
-      SELECT 
-        season_year,
-        season_month,
-        COUNT(DISTINCT p.player_id) as total_players,
-        COUNT(pa.attack_id) as total_attacks
-      FROM cwl_seasons cs
-      LEFT JOIN war_days wd ON cs.season_id = wd.season_id
-      LEFT JOIN player_attacks pa ON wd.war_day_id = pa.war_day_id
-      LEFT JOIN players p ON pa.player_id = p.player_id
-      GROUP BY cs.season_id, cs.season_year, cs.season_month
-      ORDER BY cs.season_year DESC, cs.season_month DESC
-    `);
-
+    const seasons = await cwlDataService.getAllSeasons();
+    
     res.json({
-      seasons: result.rows || []
+      seasons: seasons || []
     });
   } catch (error) {
     next(error);
@@ -118,10 +107,69 @@ const getCurrentSeason = async (req, res, next) => {
   }
 };
 
+const getPlayerByTag = async (req, res, next) => {
+  try {
+    const { playerTag } = req.params;
+    
+    if (!playerTag) {
+      return res.status(400).json({
+        error: 'Player tag is required'
+      });
+    }
+
+    const player = await cwlDataService.getPlayerByTag(playerTag);
+    
+    if (!player) {
+      return res.status(404).json({
+        error: 'Player not found'
+      });
+    }
+
+    res.json({
+      player
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPlayerCWLParticipation = async (req, res, next) => {
+  try {
+    const { playerTag, year, month } = req.params;
+    
+    if (!playerTag || !year || !month) {
+      return res.status(400).json({
+        error: 'Player tag, year, and month are required'
+      });
+    }
+
+    const participation = await cwlDataService.getPlayerCWLParticipation(
+      playerTag, 
+      parseInt(year), 
+      parseInt(month)
+    );
+    
+    if (!participation) {
+      return res.status(404).json({
+        error: 'Player participation not found for this season'
+      });
+    }
+
+    res.json({
+      season: `${year}-${month}`,
+      participation
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getCWLPerformance,
   getSeasonSummary,
   getMissedAttacks,
   getAllSeasons,
-  getCurrentSeason
+  getCurrentSeason,
+  getPlayerByTag,
+  getPlayerCWLParticipation
 };

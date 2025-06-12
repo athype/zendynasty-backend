@@ -15,12 +15,7 @@ class CocService {
 
   async getClanInfo(clanTag) {
     try {
-      // Alternative: Check if ready first
-      if (!cocClientManager.isReady()) {
-        throw new Error('CoC Client not ready');
-      }
-      
-      const client = cocClientManager.getClient();
+      const client = await cocClientManager.getClientAsync();
       const clan = await client.getClan(clanTag);
       return clan;
     } catch (error) {
@@ -28,6 +23,17 @@ class CocService {
       throw error;
     }
   }
+
+  async getCapitalRaidInfo(clanTag) {
+  try {
+    const client = await cocClientManager.getClientAsync();
+    const capitalRaid = await client.getClanCapitalRanks(clanTag);
+    return capitalRaid;
+  } catch (error) {
+    console.error('Error fetching capital raid info:', error);
+    throw error;
+  }
+}
 }
 
 module.exports = new CocService();
