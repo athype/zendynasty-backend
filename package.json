@@ -17,6 +17,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.9.0",
     "clashofclans.js": "^3.3.22",
     "connect-pg-simple": "^10.0.0",
     "connect-sqlite3": "^0.9.15",

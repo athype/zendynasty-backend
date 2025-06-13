@@ -35,6 +35,18 @@ const getSchemaSQL = () => {
         last_updated ${timestampType}
       );
     `,
+
+    // Player links table - links Discord users to their CoC accounts
+    player_links: `
+      CREATE TABLE IF NOT EXISTS player_links (
+        link_id ${autoIncrement},
+        user_id INTEGER NOT NULL,
+        player_id INTEGER NOT NULL UNIQUE,
+        linked_at ${timestampType},
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (player_id) REFERENCES players(player_id) ON DELETE CASCADE
+      );
+    `,
     
     cwl_seasons: `
       CREATE TABLE IF NOT EXISTS cwl_seasons (
@@ -45,7 +57,7 @@ const getSchemaSQL = () => {
       );
     `,
     
-    // NEW: CWL participation and bonus eligibility per season
+    // CWL participation and bonus eligibility per season
     cwl_participation: `
       CREATE TABLE IF NOT EXISTS cwl_participation (
         participation_id ${autoIncrement},
@@ -94,6 +106,7 @@ async function initializeDatabase() {
     // Create tables in order (respecting foreign key dependencies)
     await database.query(schemas.users);
     await database.query(schemas.players);
+    await database.query(schemas.player_links);
     await database.query(schemas.cwl_seasons);
     await database.query(schemas.cwl_participation);
     await database.query(schemas.war_days);
@@ -103,13 +116,15 @@ async function initializeDatabase() {
     await database.query(`CREATE INDEX IF NOT EXISTS idx_users_discord_id ON users(discord_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_players_tag ON players(player_tag);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_players_name ON players(player_name);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_player_links_user_id ON player_links(user_id);`);
+    await database.query(`CREATE INDEX IF NOT EXISTS idx_player_links_player_id ON player_links(player_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_cwl_participation_player_id ON cwl_participation(player_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_cwl_participation_season_id ON cwl_participation(season_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_player_id ON player_attacks(player_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_player_attacks_war_day_id ON player_attacks(war_day_id);`);
     await database.query(`CREATE INDEX IF NOT EXISTS idx_war_days_season_id ON war_days(season_id);`);
     
-    // Create enhanced view with bonus eligibility
+    // Create enhanced view with player links and bonus eligibility
     const viewSQL = isPostgreSQL 
       ? `CREATE OR REPLACE VIEW cwl_performance_summary AS`
       : `CREATE VIEW IF NOT EXISTS cwl_performance_summary AS`;
@@ -126,12 +141,16 @@ async function initializeDatabase() {
         pa.stars_earned,
         pa.destruction_percentage,
         pa.enemy_town_hall_level,
-        cp.bonus_eligible
+        cp.bonus_eligible,
+        u.discord_id,
+        u.username as discord_username
       FROM players p
       JOIN player_attacks pa ON p.player_id = pa.player_id
       JOIN war_days wd ON pa.war_day_id = wd.war_day_id
       JOIN cwl_seasons cs ON wd.season_id = cs.season_id
       LEFT JOIN cwl_participation cp ON p.player_id = cp.player_id AND cs.season_id = cp.season_id
+      LEFT JOIN player_links pl ON p.player_id = pl.player_id
+      LEFT JOIN users u ON pl.user_id = u.user_id
       ORDER BY cs.season_year DESC, cs.season_month DESC, wd.day_number, p.player_name;
     `);
     

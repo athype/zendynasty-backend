@@ -16,6 +16,9 @@ const authRouter = require('./routers/authRouter');
 const cwlRouter = require('./routers/cwlRouter');
 const uploadRouter = require('./routers/uploadRouter');
 const clashRouter = require('./routers/clashRouter');
+const playerLinksRouter = require('./routers/playerLinksRouter');
+const externalLinksRouter = require('./routers/externalLinksRouter');
+
 
 const app = express();
 
@@ -96,6 +99,8 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/cwl', cwlRouter);
 app.use('/api/v1/upload', uploadRouter);
 app.use('/api/v1/clash', clashRouter);
+app.use('/api/v1/player-links', playerLinksRouter);
+app.use('/api/v1/external-links', externalLinksRouter);
 
 app.use(middlewares.notFound);
 app.use(middlewares.errorHandler);

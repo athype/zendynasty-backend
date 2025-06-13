@@ -54,6 +54,21 @@ const options = {
             bonus_eligible: { type: 'boolean' }
           }
         },
+        PlayerLink: {
+          type: 'object',
+          properties: {
+            link_id: { type: 'integer' },
+            user_id: { type: 'integer' },
+            player_id: { type: 'integer' },
+            is_main_account: { type: 'boolean' },
+            linked_at: { type: 'string', format: 'date-time' },
+            player_tag: { type: 'string', example: '#CLV98LRJ' },
+            player_name: { type: 'string' },
+            town_hall_level: { type: 'integer' },
+            discord_id: { type: 'string' },
+            username: { type: 'string' }
+          }
+        },
         PlayerAttack: {
           type: 'object',
           properties: {
