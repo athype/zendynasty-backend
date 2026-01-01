@@ -6,7 +6,8 @@ const cocApiService = require('./cocApiService');
 class ExternalLinksService {
   
   constructor() {
-    this.apiUrl = 'https://api.clashking.xyz/discord_links';
+    const baseUrl = process.env.CLASH_KING_API_URL || 'https://api.clashk.ing';
+    this.apiUrl = `${baseUrl}/discord_links`;
   }
   
   async fetchPlayerLinksFromExternal(discordIds) {
